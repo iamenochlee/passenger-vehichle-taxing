@@ -1,8 +1,11 @@
-import React from "react";
-import { useWeb3Contract } from "react-moralis";
+import React, { useEffect, useState } from "react";
+import { useMoralis, useWeb3Contract } from "react-moralis";
+import { Button, Checkbox } from "web3uikit";
 import { abi, contractAddresses } from "../constants";
 
 const Status = () => {
+  const [driversStatus, setDriverStatus] = useState(true);
+  const { isWeb3Enabled } = useMoralis();
   const {
     data,
     error,
@@ -18,11 +21,35 @@ const Status = () => {
     params: {},
   };
 
+  const { runContractFunction: getDriverStatus } = useWeb3Contract({
+    abi,
+    contractAddress: contractAddresses,
+    functionName: "getDriverStatus",
+    params: {},
+  });
+
+  async function updateUIValues() {
+    const driversStatus = await getDriverStatus();
+    setDriverStatus(driversStatus);
+  }
+
+  useEffect(() => {
+    if (isWeb3Enabled) {
+      updateUIValues();
+    }
+  }, [isWeb3Enabled, driversStatus]);
+
   return (
-    <div>
-      Status
-      <button
-        onClick={() => turnOffWorkingStatus({ params: options })}></button>
+    <div className="text-white">
+      <p className="mb-4">Active Status</p>
+      <Checkbox
+        onChange={() => turnOffWorkingStatus({ params: options })}
+        label="switch off"
+        name="checkbox"
+        disabled={isFetching}
+        checked={driversStatus}
+        className="text-red-500"
+      />
     </div>
   );
 };

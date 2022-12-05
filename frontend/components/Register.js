@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMoralis, useWeb3Contract } from "react-moralis";
+import { Button, Input } from "web3uikit";
 import { abi, contractAddresses } from "../constants";
 
 const Register = () => {
-  const [id, setId] = useState(0);
+  const [id, setId] = useState();
   const [name, setName] = useState("");
+  const [vehileCapacity, setVehichleCapacity] = useState();
   const [maxCapacity, setMaxCapacity] = useState(20);
-  const [vehileCapacity, setVehileCapacity] = useState(12);
   const { isWeb3Enabled } = useMoralis();
 
   const {
@@ -39,7 +40,7 @@ const Register = () => {
 
   const handleRegister = (e) => {
     e.preventDefault();
-    if (id || name || vehileCapacity !== null) {
+    if (id || name || vehileCapacity !== null || "") {
       register({ params: options });
     }
   };
@@ -51,41 +52,48 @@ const Register = () => {
     }
     if (isWeb3Enabled) {
       resolveMax();
-      console.log(maxCapacity);
     }
   }, [isWeb3Enabled]);
 
   return (
-    <div>
-      <h2>Register as a Driver</h2>
-      <div>
-        <form>
-          <input
-            type="number"
-            placeholder="enter your Id"
+    <div className="px-36">
+      <h2 className="text-center mb-4 text-xl font-bold text-white">
+        Register as a Driver
+      </h2>
+      <div className="w-full px-20">
+        <form className="w-full flex flex-col gap-8">
+          <Input
             value={id}
+            type="number"
+            min="1"
+            placeholder="passId"
+            max="3000"
             onChange={(e) => setId(e.target.value)}
           />
-          <input
+          <Input
             type="text"
-            placeholder="enter your name"
+            placeholder="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <input
+          <Input
             type="number"
             min="12"
             max={maxCapacity}
-            placeholder="enter your vehicle Capacity"
+            placeholder="vehicleCapacity"
             value={vehileCapacity}
-            onChange={(e) => setVehileCapacity(e.target.value)}
+            onChange={(e) => setVehichleCapacity(e.target.value)}
           />
-          <button
-            className="bg-red-500 p-5"
+          <Button
             onClick={(e) => handleRegister(e)}
-            disabled={isFetching}>
-            Register
-          </button>
+            disabled={isFetching}
+            text="Register"
+            theme="colored"
+            color="yellow"
+            className="h-12"
+            isFullWidth="true"
+            style={{ color: "gray" }}
+          />
         </form>
       </div>
     </div>
