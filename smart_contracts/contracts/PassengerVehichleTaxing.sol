@@ -34,7 +34,7 @@ contract PassengerVehichleTaxing is AutomationCompatible {
     uint256 public s_minVehicleCapacity = 12;
     uint256 public s_maxVehicleCapacity = 24;
     uint256 public immutable INTERVAL;
-    uint public lastTimeStamp;
+    uint256 public lastTimeStamp;
     AggregatorV3Interface private s_priceFeed;
 
     //struct Array
@@ -80,15 +80,6 @@ contract PassengerVehichleTaxing is AutomationCompatible {
     modifier onlyOwner() {
         if (msg.sender != i_owner) {
             revert PassengerVehichleTaxing__NotPermitted("Not Permitted");
-        }
-        _;
-    }
-    modifier onlyDriver() {
-        Driver[] memory m_drivers = s_drivers;
-        for (uint256 i; i < m_drivers.length; i++) {
-            if (msg.sender != m_drivers[i].addr) {
-                revert PassengerVehichleTaxing__NotPermitted("Not Permitted");
-            }
         }
         _;
     }
@@ -201,14 +192,14 @@ contract PassengerVehichleTaxing is AutomationCompatible {
     /** 
     @notice this function take notes of defaulting drivers
     @dev handleDefaulters pushes defulting drivers to an array of defaulters
- */
+     */
     function handleDefaulters() internal {
         /// @dev copying drivers storage to memory so as to map through at a lower gas
         Driver[] memory m_drivers = s_drivers;
         for (uint256 i = 0; i < m_drivers.length; i++) {
             /// @dev checking for tax
             if (m_drivers[i].tax != 0) {
-                s_defaulters.push(m_drivers[i]);
+                s_defaulters.push(s_drivers[i]);
             } else if (m_drivers[i].tax == 0) {
                 s_defaulters[i] = s_defaulters[s_defaulters.length - 1];
                 s_defaulters.pop();
@@ -220,18 +211,21 @@ contract PassengerVehichleTaxing is AutomationCompatible {
         @dev drivers call this functio to pay off their tax 
     */
 
-    function payTax() public payable onlyDriver {
+    function payTax() public payable {
         /// @dev requiring the contract staus to be open
         require(status == Status.OPEN, "Undergoing Daily Calculations");
         /// @dev copying drivers storage to memory so as to map through at a lower gas
         Driver[] memory m_drivers = s_drivers;
         /// @dev _passId is needed to emit taxpayed event
         uint256 _passId;
+
+        bool state = false;
         for (uint256 i = 0; i < m_drivers.length; i++) {
             /// @dev a check to require that the caller is a registerd driver
             if (m_drivers[i].addr == msg.sender) {
                 uint256 _tax = s_drivers[i].tax;
                 _passId = s_drivers[i].passId;
+                state = true;
                 /// @dev ensuring the value sent is enough to clear the driver tax
                 if (msg.value != _tax) {
                     /// @notice throwing an error on insufficient funds
@@ -240,18 +234,19 @@ contract PassengerVehichleTaxing is AutomationCompatible {
                         _tax
                     );
                 }
+                /// @dev emitting taxpayed event if all conditions are met
+                emit TaxPay(_passId, msg.sender, msg.value);
+                ///@dev resetting defaulters array
                 s_drivers[i].tax = 0;
+                handleDefaulters();
             }
         }
-        /// @dev emitting taxpayed event if all conditions are met
-        emit TaxPay(_passId, msg.sender, msg.value);
-
-        ///@dev resetting defaulters array
-        handleDefaulters();
+        if (state != true)
+            revert PassengerVehichleTaxing__NotPermitted("not Permitted");
     }
 
     /// @notice toggles driver working status
-    function turnOffWorkingStatus() public onlyDriver {
+    function turnOffWorkingStatus() public {
         /// @dev copying drivers storage to memory so as to map through at a lower gas
         Driver[] memory m_drivers = s_drivers;
         /// @dev ensuring that the caller is a registered driver
@@ -268,27 +263,40 @@ contract PassengerVehichleTaxing is AutomationCompatible {
         @param _passId thsi is needed to confirm the drivers will to uregister
      */
 
-    function unRegister(uint256 _passId) public virtual onlyDriver {
+    function unRegister(uint256 _passId) public {
         /// @dev copying drivers storage to memory so as to map through at a lower gas
+        bool state = false;
         Driver[] memory m_drivers = s_drivers;
         for (uint256 i = 0; i < m_drivers.length; i++) {
             if (m_drivers[i].addr == msg.sender) {
+                state = true;
                 /// @dev checking to make sure the driver has paid all tax
                 if (s_drivers[i].tax != 0) {
-                    revert PassengerVehichleTaxing__NotPermitted(
-                        "pay out pending tax"
-                    );
-                }
-                /// @dev moving the driver to the last index
+                    revert PassengerVehichleTaxing__NotPermitted("pay out tax");
+                } /// @dev moving the driver to the last index
                 s_drivers[i] = s_drivers[s_drivers.length - 1];
                 /// @dev removing the driver
                 s_drivers.pop();
                 delete s_idToDriver[_passId];
+                /// @dev emitting an unregister event
+                emit UnRegistered(_passId, msg.sender);
             }
         }
+        if (state != true)
+            revert PassengerVehichleTaxing__NotPermitted(
+                "error: permission denied"
+            );
+    }
 
-        /// @dev emitting an unregister event
-        emit UnRegistered(_passId, msg.sender);
+    function isDriver() public view returns (bool) {
+        Driver[] memory m_drivers = s_drivers;
+
+        for (uint256 i = 0; i < m_drivers.length; i++) {
+            if (m_drivers[i].addr == msg.sender) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// @notice withdraw function, only owner can call
@@ -302,26 +310,19 @@ contract PassengerVehichleTaxing is AutomationCompatible {
     //getter functions
 
     /** @notice getsDriverTax
-        @dev gets and returns the driver tax
-        @param _passId the passid of the driver whose tax is requested
         @return tax the taxamountinwei corresponding to the driver 
      */
-    function getDriverTax(uint256 _passId) public view returns (uint256) {
+    function getDriverTax() public view returns (uint256) {
         /// @dev copying drivers storage to memory so as to map through at a lower gas
         Driver[] memory m_drivers = s_drivers;
-        /// @dev creating a tax variable that will be assigned to the requested drivers tax
-        uint256 _tax;
         for (uint256 i = 0; i < m_drivers.length; i++) {
             /// @dev checking if the driver exist user the passId
-            if (m_drivers[i].passId != _passId) {
-                /// @notice throwing an error if the passId is not found
-                revert PassengerVehichleTaxing__DriverNotFound("");
+            if (m_drivers[i].addr == msg.sender) {
+                /// @notice returning tax
+                return s_drivers[i].tax;
             }
-            /// @dev assigning the driver tax to tax variable
-            _tax = s_drivers[i].tax;
         }
-        /// @notice returning tax
-        return _tax;
+        revert PassengerVehichleTaxing__DriverNotFound("not found");
     }
 
     //getters
@@ -346,7 +347,7 @@ contract PassengerVehichleTaxing is AutomationCompatible {
     /**  @notice all drivers count
      *   @return drivers count,  the owner calls this function to get the drivers count
      */
-    function getDriversCount() public view onlyOwner returns (uint256) {
+    function getDriversCount() public view returns (uint256) {
         return s_drivers.length;
     }
 
@@ -363,6 +364,20 @@ contract PassengerVehichleTaxing is AutomationCompatible {
 
     function getPriceFeed() public view returns (AggregatorV3Interface) {
         return s_priceFeed;
+    }
+
+    function getDriverStatus() public view returns (bool) {
+        /// @dev copying drivers storage to memory so as to map through at a lower gas
+        Driver[] memory m_drivers = s_drivers;
+        /// @dev creating a tax variable that will be assigned to the requested drivers tax
+        for (uint256 i = 0; i < m_drivers.length; i++) {
+            /// @dev checking if the driver exist user the passId
+            if (m_drivers[i].addr == msg.sender) {
+                /// @dev assigning the driver tax to tax variable
+                return s_drivers[i].isWorking;
+            }
+        }
+        revert PassengerVehichleTaxing__NotPermitted("caller not a driver");
     }
 
     function getOwner() public view returns (address) {
@@ -402,7 +417,6 @@ contract PassengerVehichleTaxing is AutomationCompatible {
         status = Status.CALCULATING;
         handleTax();
         handleDefaulters();
-        emit TaxCalculated();
         status = Status.OPEN;
         for (uint256 i = 0; i < s_drivers.length; i++) {
             /// @dev resetting the count for updating working status to 0
@@ -413,13 +427,18 @@ contract PassengerVehichleTaxing is AutomationCompatible {
     //Called by Chainlink Keepers to check if work needs to be done
     function checkUpkeep(
         bytes calldata /*checkData */
-    ) external view returns (bool upkeepNeeded, bytes memory upKeepData) {
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory upKeepData)
+    {
         upkeepNeeded = (block.timestamp - lastTimeStamp) > INTERVAL;
         return (upkeepNeeded, upKeepData);
     }
 
     //Called by Chainlink Keepers to handle work
-    function performUpkeep(bytes calldata) external {
+    function performUpkeep(bytes calldata) external override {
         if ((block.timestamp - lastTimeStamp) > INTERVAL) {
             tax();
             emit TaxCalculated();

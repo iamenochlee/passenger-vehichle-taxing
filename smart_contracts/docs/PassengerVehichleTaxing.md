@@ -67,21 +67,33 @@ all defaulters
 |---|---|---|
 | _0 | PassengerVehichleTaxing.Driver[] | s_defaulters ,  the detailsof all defaulting drivers |
 
+### getDriverStatus
+
+```solidity
+function getDriverStatus() external view returns (bool)
+```
+
+
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
+
 ### getDriverTax
 
 ```solidity
-function getDriverTax(uint256 _passId) external view returns (uint256)
+function getDriverTax() external view returns (uint256)
 ```
 
 getsDriverTax
 
-*gets and returns the driver tax*
 
-#### Parameters
 
-| Name | Type | Description |
-|---|---|---|
-| _passId | uint256 | the passid of the driver whose tax is requested |
 
 #### Returns
 
@@ -195,6 +207,23 @@ function getTaxRate() external view returns (uint256)
 | Name | Type | Description |
 |---|---|---|
 | _0 | uint256 | undefined |
+
+### isDriver
+
+```solidity
+function isDriver() external view returns (bool)
+```
+
+
+
+
+
+
+#### Returns
+
+| Name | Type | Description |
+|---|---|---|
+| _0 | bool | undefined |
 
 ### lastTimeStamp
 

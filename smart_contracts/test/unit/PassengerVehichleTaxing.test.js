@@ -89,10 +89,10 @@ const INTERVAL = process.env.INTERVAL;
             "Registered"
           );
         });
-        it("should return the driver", async () => {
-          expect(await PassengerVehichleTaxing.getDriverWithId(123)).to.contain(
-            "Bob"
-          );
+        it("should confirm the driver's legitimacy", async () => {
+          expect(
+            await PassengerVehichleTaxing.connect(accounts[1]).isDriver()
+          ).to.equal(true);
         });
         it("should add the driver that passes the registration requirements", async () => {
           const ndriversCount = 1;
@@ -112,8 +112,10 @@ const INTERVAL = process.env.INTERVAL;
             PassengerVehichleTaxing.connect(accounts[1]).turnOffWorkingStatus();
           });
           it("should update the driver status", async () => {
-            const drivers = await PassengerVehichleTaxing.getDrivers();
-            assert.equal(drivers[0].isWorking, false);
+            const status = await PassengerVehichleTaxing.connect(
+              accounts[1]
+            ).getDriverStatus();
+            assert.equal(status, false);
           });
         });
         describe("handling tax", () => {
@@ -135,12 +137,14 @@ const INTERVAL = process.env.INTERVAL;
             expect(TxResponse).to.emit("TaxCalculated");
           });
           it("should update the driver tax", async () => {
-            tax = await PassengerVehichleTaxing.getDriverTax(123);
+            tax = await PassengerVehichleTaxing.connect(
+              accounts[1]
+            ).getDriverTax();
             expect(tax.toString()).not.equal("0");
           });
           it("should handle for wrong driver pass", async () => {
             await expect(
-              PassengerVehichleTaxing.getDriverTax(125)
+              PassengerVehichleTaxing.connect(accounts[2]).getDriverTax()
             ).to.revertedWithCustomError(
               PassengerVehichleTaxing,
               "PassengerVehichleTaxing__DriverNotFound"
@@ -164,13 +168,13 @@ const INTERVAL = process.env.INTERVAL;
             beforeEach(async () => {
               TxResponse = await PassengerVehichleTaxing.connect(
                 accounts[1]
-              ).payTax({
-                value: tax,
-              });
+              ).payTax({ value: tax });
               TxResponse.wait();
             });
             it("should pay out the tax", async () => {
-              const taxAmount = await PassengerVehichleTaxing.getDriverTax(123);
+              const taxAmount = await PassengerVehichleTaxing.connect(
+                accounts[1]
+              ).getDriverTax();
               assert.equal(taxAmount.toString(), "0");
             });
             it("should emits event on tax payment", async () => {
