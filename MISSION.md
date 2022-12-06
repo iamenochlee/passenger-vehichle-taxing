@@ -1,0 +1,1 @@
+This contract aims to solve the failed taxing system for passenger-vehichle-taxing in Nigeria, and Africa as a whole, The current system adds to traffic along the highway, reckless approach among others. [more]("https://www.vanguardngr.com/2014/03/tax-system-nigeria-issues-challenges/")

@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { useMoralis, useWeb3Contract } from "react-moralis";
 import {
   Payment,
-  UNRegister,
-  Account,
+  UnregisterDriver,
+  Header,
   View,
   Register,
   Status,
@@ -13,7 +13,7 @@ import { abi, contractAddresses } from "../constants";
 
 export default function Home() {
   const supportedChains = ["80001"];
-  const { isWeb3Enabled, chainId } = useMoralis();
+  const { isWeb3Enabled, chainId, connector, account } = useMoralis();
   const [driverStatus, setDriverStatus] = useState(false);
   const { runContractFunction: isDriver } = useWeb3Contract({
     abi,
@@ -22,15 +22,15 @@ export default function Home() {
     params: {},
   });
 
-  useEffect(() => {
-    const updateUI = async () => {
-      const status = await isDriver();
-      setDriverStatus(status);
-    };
+  const updateUI = async () => {
+    const status = await isDriver();
+    setDriverStatus(status);
+  };
 
+  useEffect(() => {
     updateUI();
     console.log(driverStatus);
-  }, [isWeb3Enabled, driverStatus]);
+  }, [isWeb3Enabled, driverStatus, connector, account]);
 
   return (
     <div className="h-screen">
@@ -43,7 +43,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <header>
-        <Account />
+        <Header />
       </header>
       <main>
         {isWeb3Enabled ? (
@@ -51,16 +51,15 @@ export default function Home() {
             {supportedChains.includes(parseInt(chainId).toString()) ? (
               <>
                 {!driverStatus ? (
-                  <Register />
+                  <Register isDriver={driverStatus} updateUI={updateUI} />
                 ) : (
                   <div className="w-full">
-                    <div className="text-white w-full flex p-32 flex-row-reverse  justify-between items-end gap-24">
-                      <UNRegister />
+                    <div className="text-white w-full flex p-32 flex-row-reverse  justify-between items-end gap-24 flex-wrap">
+                      <UnregisterDriver updateUI={updateUI} />
                       <div className="relative flex flex-col gap-4">
-                        <Status />
-                        <View />
-
-                        <Payment />
+                        <Status updateUI={updateUI} />
+                        <View isDriver={driverStatus} />
+                        <Payment updateUI={updateUI} />
                       </div>
                     </div>
                   </div>

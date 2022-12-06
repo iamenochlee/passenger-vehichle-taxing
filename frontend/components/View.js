@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useMoralis, useWeb3Contract } from "react-moralis";
 import { abi, contractAddresses } from "../constants";
 
-const View = () => {
+const View = ({}) => {
   const [tripPrice, setTripPrice] = useState(0);
   const [taxRate, setTaxRate] = useState(0);
   const [driversCount, setDriversCount] = useState(0);
   const [driversStatus, setDriverStatus] = useState(true);
   const [tax, setTax] = useState(0);
-  const { isWeb3Enabled } = useMoralis();
+  const { isWeb3Enabled, Moralis } = useMoralis();
 
   const { runContractFunction: getDriverTax } = useWeb3Contract({
     abi,
@@ -50,19 +50,20 @@ const View = () => {
     const driversCount = (await getDriversCount())?.toString();
     const tripPrice = (await getTripPrice())?.toString();
     const tax = (await getDriverTax())?.toString();
-    const driversStatus = (await getDriverStatus())?.toString();
+    const driversStatus = await getDriverStatus();
     setTaxRate(taxRate);
     setDriversCount(driversCount);
     setTripPrice(tripPrice);
     setDriverStatus(driversStatus);
     setTax(tax);
+    console.log(driversStatus);
   }
 
   useEffect(() => {
     if (isWeb3Enabled) {
       updateUIValues();
     }
-  }, [isWeb3Enabled]);
+  }, [isWeb3Enabled, driversStatus, tax]);
   return (
     <div>
       {isWeb3Enabled && (
@@ -71,9 +72,12 @@ const View = () => {
             {" "}
             Drivers: {driversCount}
           </h3>
-          <div className="flex items-center gap-32">
-            <h3>Tax Rate: {taxRate}%</h3>
-            <h3>Trip Price: ${tripPrice}</h3>
+          <div className="">
+            <span>Tax is calculated every 10 minutes</span>
+            <div className="flex items-center gap-32">
+              <h3>Tax Rate: {taxRate}%</h3>
+              <h3>Trip Price: ${tripPrice}</h3>
+            </div>
           </div>
 
           <h3
@@ -82,7 +86,9 @@ const View = () => {
             }`}>
             {driversStatus ? "active" : "inactive"}
           </h3>
-          <h3 className="text-5xl">{tax}$ WEI</h3>
+          <h3 className="text-5xl">
+            {Moralis.Units.FromWei(tax).slice(0, 5)} $ETH
+          </h3>
         </div>
       )}
     </div>

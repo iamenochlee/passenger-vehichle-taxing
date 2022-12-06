@@ -1,6 +1,7 @@
+import { useMoralis } from "react-moralis";
 import { ConnectButton } from "web3uikit";
 
-function Account() {
+function Header() {
   return (
     <nav className="py-1 xl:py-2 xl:px-6 border-b-2 flex flex-row">
       <h1 className="py-4 px-4 font-bold text-xl xl:text-2xl text-white">
@@ -13,4 +14,4 @@ function Account() {
   );
 }
 
-export default Account;
+export default Header;

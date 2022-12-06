@@ -1,8 +1,8 @@
 import Payment from "./Payment";
-import Account from "./account";
+import Header from "./Header";
 import Register from "./Register";
-import UNRegister from "./UnRegister";
+import UnregisterDriver from "./UnregisterDriver";
 import Status from "./Status";
 import View from "./View";
 
-export { Payment, Account, Register, UNRegister, Status, View };
+export { Payment, Header, Register, UnregisterDriver, Status, View };

@@ -1,9 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useMoralis, useWeb3Contract } from "react-moralis";
-import { Button, Checkbox } from "web3uikit";
+import { Button, Checkbox, useNotification } from "web3uikit";
 import { abi, contractAddresses } from "../constants";
 
-const Status = () => {
+const Status = ({ updateUI }) => {
+  const dispatch = useNotification();
+
+  const handleNewNotification = () => {
+    dispatch({
+      type: "info",
+      message: "Working Status turned off!",
+      title: "Status Updated",
+      position: "topR",
+    });
+  };
+
   const [driversStatus, setDriverStatus] = useState(true);
   const { isWeb3Enabled } = useMoralis();
   const {
@@ -27,26 +38,35 @@ const Status = () => {
     functionName: "getDriverStatus",
     params: {},
   });
-
-  async function updateUIValues() {
-    const driversStatus = await getDriverStatus();
-    setDriverStatus(driversStatus);
-  }
-
+  const handleSuccess = async () => {
+    try {
+      updateUI();
+      handleNewNotification();
+    } catch (error) {
+      console.log(error);
+    }
+  };
   useEffect(() => {
+    async function updateUIValues() {
+      const driversStatus = await getDriverStatus();
+      setDriverStatus(driversStatus);
+    }
     if (isWeb3Enabled) {
       updateUIValues();
     }
   }, [isWeb3Enabled, driversStatus]);
 
+  async function handleWorkingStatus() {
+    await turnOffWorkingStatus({ params: options, onSuccess: handleSuccess });
+  }
   return (
     <div className="text-white">
       <p className="mb-4">Active Status</p>
       <Checkbox
-        onChange={() => turnOffWorkingStatus({ params: options })}
+        onChange={handleWorkingStatus}
         label="switch off"
         name="checkbox"
-        disabled={isFetching}
+        disabled={isLoading || isFetching}
         checked={driversStatus}
         className="text-red-500"
       />

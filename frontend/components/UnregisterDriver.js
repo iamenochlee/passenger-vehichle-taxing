@@ -1,14 +1,49 @@
 import React, { useState } from "react";
 import { useWeb3Contract } from "react-moralis";
-import { Button, Input } from "web3uikit";
+import { Button, Input, useNotification } from "web3uikit";
 import { abi, contractAddresses } from "../constants";
 
-const UNRegister = () => {
+const UnregisterDriver = ({ updateUI }) => {
   const [id, setId] = useState(0);
+  const dispatch = useNotification();
+
+  const handleNewNotification = () => {
+    dispatch({
+      type: "info",
+      message: `sucessfully unregistered with id: ${id}`,
+      title: "Unregistering",
+      position: "topR",
+    });
+  };
+
+  const handleNewNotificationError = () => {
+    dispatch({
+      type: "error",
+      message: `Failed to unregister, wrong Id, ensure you have payed out tax`,
+      title: "Unregistering",
+      position: "topR",
+    });
+  };
+
+  const handleSuccess = async () => {
+    try {
+      updateUI();
+      handleNewNotification();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleError = async () => {
+    try {
+      updateUI();
+      handleNewNotificationError();
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const {
-    data,
-    error,
     runContractFunction: UnRegister,
     isFetching,
     isLoading,
@@ -24,7 +59,13 @@ const UNRegister = () => {
   };
   const handleUnRegister = async (e) => {
     e.preventDefault();
-    await UnRegister({ params: options });
+    if (id > 0) {
+      await UnRegister({
+        params: options,
+        onSuccess: handleSuccess,
+        onError: handleError,
+      });
+    }
   };
   return (
     <div className="">
@@ -45,9 +86,11 @@ const UNRegister = () => {
           onChange={(e) => setId(e.target.value)}
         />
         <Button
-          onClick={(e) => handleUnRegister(e)}
+          onClick={(e) => {
+            handleUnRegister(e);
+          }}
           text="confirm"
-          disabled={isFetching}
+          disabled={isFetching || isLoading}
           theme="colored"
           color="yellow"
           className="bg-yellow-300 h-12"
@@ -58,4 +101,4 @@ const UNRegister = () => {
   );
 };
 
-export default UNRegister;
+export default UnregisterDriver;
